@@ -1,0 +1,43 @@
+version: '3.7'
+
+services:
+  email-engine-core:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: email-engine-core
+    ports:
+      - 3000:3000
+    env_file: .env.docker
+    volumes:
+      - ./:/app
+    depends_on:
+      - postgres-email-engine-core
+    environment:
+      - npm_config_cache=/home/node/.npm
+
+  postgres-email-engine-core:
+    image: postgres
+    environment:
+      - POSTGRES_USER=dev
+      - POSTGRES_PASSWORD=dev
+      - POSTGRES_DB=email-engine-core
+    ports:
+      - 5432:5432
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  pgadmin-auth-docs:
+    image: dpage/pgadmin4:7.5
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=dev@dev.com
+      - PGADMIN_DEFAULT_PASSWORD=dev
+      - PGADMIN_LISTEN_PORT=5050
+    ports:
+      - 5050:5050
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+
+volumes:
+  postgres-data:
+  pgadmin-data:
