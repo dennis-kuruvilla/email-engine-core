@@ -1,5 +1,13 @@
 import defaultEncryptTransformer from '../common/transformers/encrypt.transformer';
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  CreateDateColumn,
+  UpdateDateColumn,
+  OneToMany,
+} from 'typeorm';
 import { IsString, IsEmail, MaxLength } from 'class-validator';
 
 @Entity('users')
@@ -18,9 +26,48 @@ export class User {
   })
   password: string | null;
 
+  @OneToMany(() => UserEmail, (userEmail) => userEmail.user)
+  emails: UserEmail[];
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
+
   async validatePassword(password: string): Promise<boolean> {
     return password === this.password;
   }
+}
+
+@Entity('user_emails')
+export class UserEmail {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @ManyToOne(() => User, (user) => user.emails, { onDelete: 'CASCADE' })
+  user: User;
+
+  @Column({ type: 'varchar', length: 255 })
+  email: string;
+
+  @Column({ type: 'text', nullable: true })
+  accessToken: string;
+
+  @Column({ type: 'text', nullable: true })
+  refreshToken: string;
+
+  @Column({ type: 'timestamp', nullable: true })
+  tokenExpiresAt: Date;
+
+  @Column({ type: 'text', nullable: true })
+  provider: string;
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
 }
 
 export class UserDto {

@@ -15,7 +15,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload) {
-    const { sub, roles } = payload;
+    const { sub } = payload;
 
     try {
       const session = await this.authService.validateSession(
@@ -29,6 +29,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException(error.message || 'Unauthorized');
     }
 
-    return { userId: sub, roles: roles };
+    return { userId: sub };
   }
 }
