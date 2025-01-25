@@ -13,31 +13,40 @@ services:
       - ./:/app
     depends_on:
       - postgres-email-engine-core
+      - elasticsearch
     environment:
       - npm_config_cache=/home/node/.npm
 
   postgres-email-engine-core:
     image: postgres
     environment:
-      - POSTGRES_USER=dev
-      - POSTGRES_PASSWORD=dev
-      - POSTGRES_DB=email-engine-core
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=postgres
     ports:
       - 5432:5432
     volumes:
       - postgres-data:/var/lib/postgresql/data
 
-  pgadmin-auth-docs:
-    image: dpage/pgadmin4:7.5
+  elasticsearch:
+    image: elasticsearch:8.16.3
     environment:
-      - PGADMIN_DEFAULT_EMAIL=dev@dev.com
-      - PGADMIN_DEFAULT_PASSWORD=dev
-      - PGADMIN_LISTEN_PORT=5050
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
     ports:
-      - 5050:5050
+      - 9200:9200
+      - 9300:9300
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    mem_limit: 2g
+    memswap_limit: 2g
     volumes:
-      - pgadmin-data:/var/lib/pgadmin
+      - elasticsearch-data:/usr/share/elasticsearch/data
 
 volumes:
   postgres-data:
-  pgadmin-data:
+  elasticsearch-data:

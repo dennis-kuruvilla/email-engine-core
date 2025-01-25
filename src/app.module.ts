@@ -4,6 +4,7 @@ import { datasource } from './common/datasource';
 import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
 import { MicrosoftAuthModule } from './microsoft-auth/microsoft-auth.module';
+import { SearchModule } from './search/search.module';
 
 @Module({
   imports: [
@@ -11,6 +12,7 @@ import { MicrosoftAuthModule } from './microsoft-auth/microsoft-auth.module';
     AuthModule,
     UserModule,
     MicrosoftAuthModule,
+    SearchModule,
   ],
 })
 export class AppModule {}
