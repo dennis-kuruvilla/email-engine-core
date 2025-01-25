@@ -40,7 +40,7 @@ export class MicrosoftAuthController {
     //   token.accessToken,
     // );
     const emailResponse = token.account.username;
-    await this.userService.saveUserEmail({
+    await this.userService.upsertUserEmail({
       userId,
       email: emailResponse,
       accessToken: token.accessToken,

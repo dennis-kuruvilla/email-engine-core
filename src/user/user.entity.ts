@@ -7,6 +7,8 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   OneToMany,
+  Unique,
+  JoinColumn,
 } from 'typeorm';
 import { IsString, IsEmail, MaxLength } from 'class-validator';
 
@@ -41,11 +43,13 @@ export class User {
 }
 
 @Entity('user_emails')
+@Unique(['user', 'email'])
 export class UserEmail {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @ManyToOne(() => User, (user) => user.emails, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'user_id' })
   user: User;
 
   @Column({ type: 'varchar', length: 255 })

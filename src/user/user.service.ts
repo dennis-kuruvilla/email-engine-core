@@ -36,7 +36,7 @@ export class UserService {
     return user;
   }
 
-  async saveUserEmail(data: {
+  async upsertUserEmail(data: {
     userId: string;
     email: string | null;
     accessToken: string;
@@ -44,16 +44,19 @@ export class UserService {
     tokenExpiresAt: Date;
     provider: string;
   }) {
-    const userEmail = this.userEmailsRepository.create({
-      user: { id: data.userId },
-      email: data.email,
-      accessToken: data.accessToken,
-      refreshToken: data.refreshToken,
-      tokenExpiresAt: data.tokenExpiresAt,
-      provider: data.provider,
-    });
-
-    await this.userEmailsRepository.save(userEmail);
+    await this.userEmailsRepository.upsert(
+      {
+        user: { id: data.userId },
+        email: data.email,
+        accessToken: data.accessToken,
+        refreshToken: data.refreshToken,
+        tokenExpiresAt: data.tokenExpiresAt,
+        provider: data.provider,
+      },
+      {
+        conflictPaths: ['user', 'email'],
+      },
+    );
   }
 
   async getToken(userId: string, provider: string) {
