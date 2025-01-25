@@ -5,6 +5,7 @@ import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
 import { MicrosoftAuthModule } from './microsoft-auth/microsoft-auth.module';
 import { SearchModule } from './search/search.module';
+import { SyncEmailModule } from './sync-email/sync-email.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { SearchModule } from './search/search.module';
     UserModule,
     MicrosoftAuthModule,
     SearchModule,
+    SyncEmailModule,
   ],
 })
 export class AppModule {}

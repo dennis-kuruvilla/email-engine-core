@@ -1,34 +1,29 @@
 import { Injectable } from '@nestjs/common';
-import { AuthorizationCode } from 'simple-oauth2';
+import { ConfidentialClientApplication } from '@azure/msal-node';
 import axios from 'axios';
-import * as jwt from 'jsonwebtoken';
 
 @Injectable()
 export class MicrosoftAuthService {
-  private client: AuthorizationCode;
+  private msalClient: ConfidentialClientApplication;
 
   constructor() {
-    this.client = new AuthorizationCode({
-      client: {
-        id: process.env.MICROSOFT_CLIENT_ID,
-        secret: process.env.MICROSOFT_CLIENT_SECRET,
-      },
+    this.msalClient = new ConfidentialClientApplication({
       auth: {
-        tokenHost: 'https://login.microsoftonline.com',
-        authorizePath: '/consumers/oauth2/v2.0/authorize',
-        tokenPath: '/consumers/oauth2/v2.0/token',
+        clientId: process.env.MICROSOFT_CLIENT_ID,
+        authority: `https://login.microsoftonline.com/consumers`,
+        clientSecret: process.env.MICROSOFT_CLIENT_SECRET,
       },
     });
   }
 
-  getAuthorizationUrl(userId: string): string {
-    const state = JSON.stringify({ userId });
-    const authorizationUri = this.client.authorizeURL({
-      redirect_uri: process.env.MICROSOFT_REDIRECT_URI,
-      scope: ['Mail.Read', 'User.Read'].join(' '),
-      state: encodeURIComponent(state),
-    });
-    return authorizationUri;
+  async getAuthorizationUrl(userId: string) {
+    const state = encodeURIComponent(JSON.stringify({ userId }));
+    const authCodeUrlParams = {
+      scopes: ['https://outlook.office.com/IMAP.AccessAsUser.All'],
+      redirectUri: process.env.MICROSOFT_REDIRECT_URI,
+      state: state,
+    };
+    return await this.msalClient.getAuthCodeUrl(authCodeUrlParams);
   }
 
   decodeState(state: string): string {
@@ -37,23 +32,23 @@ export class MicrosoftAuthService {
   }
 
   async getTokenFromCode(code: string): Promise<any> {
-    const tokenParams = {
-      code,
-      redirect_uri: process.env.MICROSOFT_REDIRECT_URI,
-      scope: ['Mail.Read', 'User.Read'].join(' '),
+    const tokenRequest = {
+      code: code,
+      scopes: ['https://outlook.office.com/IMAP.AccessAsUser.All'],
+      redirectUri: process.env.MICROSOFT_REDIRECT_URI,
     };
-    const accessToken = await this.client.getToken(tokenParams);
-    return accessToken.token;
+
+    const response = await this.msalClient.acquireTokenByCode(tokenRequest);
+    return response;
   }
 
   async getEmailFromGraph(accessToken: string): Promise<string | null> {
-    const response = await fetch('https://graph.microsoft.com/v1.0/me', {
+    const response = await axios.get('https://graph.microsoft.com/v1.0/me', {
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
     });
-    const data = await response.json();
-    return data.mail;
+    return response.data.mail;
   }
 
   async fetchEmails(accessToken: string) {

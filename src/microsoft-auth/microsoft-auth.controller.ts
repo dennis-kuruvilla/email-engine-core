@@ -2,17 +2,23 @@ import {
   BadRequestException,
   Controller,
   Get,
+  Post,
   Query,
+  Req,
   Res,
+  UseGuards,
 } from '@nestjs/common';
 import { MicrosoftAuthService } from './microsoft-auth.service';
 import { UserService } from 'src/user/user.service';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { SyncEmailService } from 'src/sync-email/sync-email.service';
 
 @Controller('ms-auth')
 export class MicrosoftAuthController {
   constructor(
     private readonly microsoftAuthService: MicrosoftAuthService,
     private readonly userService: UserService,
+    private readonly syncEmailService: SyncEmailService,
   ) {}
 
   @Get('login')
@@ -21,7 +27,7 @@ export class MicrosoftAuthController {
   async login(@Query('userId') userId: string, @Res() res) {
     if (!userId) throw new BadRequestException('userId is required');
     const authorizationUrl =
-      this.microsoftAuthService.getAuthorizationUrl(userId);
+      await this.microsoftAuthService.getAuthorizationUrl(userId);
     res.redirect(authorizationUrl);
   }
 
@@ -30,22 +36,29 @@ export class MicrosoftAuthController {
     const userId = this.microsoftAuthService.decodeState(state);
 
     const token = await this.microsoftAuthService.getTokenFromCode(code);
-    const emailResponse = await this.microsoftAuthService.getEmailFromGraph(
-      token.access_token,
-    );
-
+    // const emailResponse = await this.microsoftAuthService.getEmailFromGraph(
+    //   token.accessToken,
+    // );
+    const emailResponse = token.account.username;
     await this.userService.saveUserEmail({
       userId,
       email: emailResponse,
-      accessToken: token.access_token,
-      refreshToken: token.refresh_token,
-      tokenExpiresAt: new Date(Date.now() + token.expires_in * 1000),
+      accessToken: token.accessToken,
+      refreshToken: token.refreshToken,
+      tokenExpiresAt: null,
       provider: 'microsoft',
     });
 
     return {
       message: 'Tokens saved successfully',
     };
+  }
+
+  @Post('sync-emails')
+  @UseGuards(JwtAuthGuard)
+  async syncEmails(@Req() req) {
+    const token = await this.userService.getToken(req.user.userId, 'microsoft');
+    this.syncEmailService.initiateSync(req.user.userId, token);
   }
 
   @Get('emails')
