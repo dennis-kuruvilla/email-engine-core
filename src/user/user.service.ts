@@ -55,4 +55,16 @@ export class UserService {
 
     await this.userEmailsRepository.save(userEmail);
   }
+
+  async getToken(userId: string, provider: string) {
+    const userEmail = await this.userEmailsRepository.findOne({
+      where: { user: { id: userId }, provider },
+    });
+
+    if (!userEmail.accessToken) {
+      throw new NotFoundException('Token not found');
+    }
+
+    return userEmail.accessToken;
+  }
 }
