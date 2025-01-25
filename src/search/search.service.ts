@@ -10,6 +10,48 @@ export class SearchService implements OnModuleInit {
     try {
       const health = await this.elasticsearchService.ping();
       console.log('elasticsearch connection is healthy:', health);
+
+      const emailIndexExists = await this.elasticsearchService.indices.exists({
+        index: 'emails',
+      });
+      if (!emailIndexExists) {
+        await this.elasticsearchService.indices.create({
+          index: 'emails',
+          body: {
+            mappings: {
+              properties: {
+                userId: { type: 'keyword' },
+                messageId: { type: 'keyword' },
+                from: { type: 'text' },
+                to: { type: 'text' },
+                subject: { type: 'text' },
+                date: { type: 'date' },
+                flags: { type: 'text' },
+                body: { type: 'text' },
+              },
+            },
+          },
+        });
+      }
+
+      const mailboxIndexExists = await this.elasticsearchService.indices.exists(
+        { index: 'mailboxes' },
+      );
+      if (!mailboxIndexExists) {
+        await this.elasticsearchService.indices.create({
+          index: 'mailboxes',
+          body: {
+            mappings: {
+              properties: {
+                userId: { type: 'keyword' },
+                email: { type: 'keyword' },
+                lastSync: { type: 'date' },
+                syncStatus: { type: 'text' },
+              },
+            },
+          },
+        });
+      }
     } catch (error) {
       console.error('elasticsearch connection failed:', error);
       throw new Error('elasticsearch connection failed');
@@ -44,5 +86,43 @@ export class SearchService implements OnModuleInit {
       console.error('Error in indexing document:', error);
       throw new Error('Indexing failed');
     }
+  }
+
+  async indexEmailData(userId: string, email: any) {
+    const { messageId, from, to, subject, date, flags, body } = email;
+
+    const formattedDate = new Date(date).toISOString();
+
+    const document = {
+      userId,
+      messageId,
+      from,
+      to,
+      subject,
+      date: formattedDate,
+      flags,
+      body,
+    };
+
+    await this.elasticsearchService.index({
+      index: 'emails',
+      id: messageId,
+      body: document,
+    });
+  }
+
+  async indexMailboxData(userId: string, email: string) {
+    const document = {
+      userId,
+      email,
+      lastSync: new Date(),
+      syncStatus: 'active',
+    };
+
+    await this.elasticsearchService.index({
+      index: 'mailboxes',
+      id: userId,
+      body: document,
+    });
   }
 }

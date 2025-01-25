@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { inspect } from 'util';
+import { SearchService } from 'src/search/search.service';
 // eslint-disable-next-line prettier/prettier
 const Imap = require('node-imap');
 
@@ -7,16 +8,17 @@ const Imap = require('node-imap');
 export class SyncEmailService {
   private imap: any;
 
-  constructor() {}
+  constructor(private readonly searchService: SearchService) {}
 
-  initiateSync(userId: string, oauthToken: string) {
+  async initiateSync(userId: string, oauthToken: string) {
     const mailId = 'denniskuruvilla@outlook.com';
 
     const auth2 = Buffer.from(
       [`user=${mailId}`, `auth=Bearer ${oauthToken}`, '', ''].join('\x01'),
       'utf-8',
     ).toString('base64');
-    const imap = new Imap({
+
+    this.imap = new Imap({
       xoauth2: auth2,
       host: 'outlook.office365.com',
       port: 993,
@@ -30,57 +32,122 @@ export class SyncEmailService {
       },
     });
 
-    function openInbox(cb) {
-      imap.openBox('INBOX', true, cb);
-    }
+    this.imap.once('ready', async () => {
+      await this.syncEmails(userId);
+      await this.syncMailbox(userId, mailId);
+      // this.subscribeToRealTimeUpdates();
+    });
 
-    imap.once('ready', function () {
-      openInbox(function (err, box) {
-        if (err) throw err;
-        const f = imap.seq.fetch('1:3', {
-          bodies: 'HEADER.FIELDS (FROM TO SUBJECT DATE)',
-          struct: true,
-        });
-        f.on('message', function (msg, seqno) {
-          console.log('Message #%d', seqno);
-          const prefix = '(#' + seqno + ') ';
-          msg.on('body', function (stream, info) {
-            let buffer = '';
-            stream.on('data', function (chunk) {
-              buffer += chunk.toString('utf8');
-            });
-            stream.once('end', function () {
-              console.log(
-                prefix + 'Parsed header: %s',
-                inspect(Imap.parseHeader(buffer)),
-              );
-            });
+    this.imap.once('error', (err) => {
+      console.log('IMAP error: ', err);
+    });
+
+    this.imap.once('end', () => {
+      console.log('IMAP connection ended');
+    });
+
+    this.imap.connect();
+  }
+
+  async syncEmails(userId: string) {
+    this.imap.openBox('INBOX', true, (err, box) => {
+      if (err) throw err;
+
+      const f = this.imap.seq.fetch('1:' + box.messages.total, {
+        bodies: 'HEADER.FIELDS (FROM TO SUBJECT DATE FLAGS)',
+        struct: true,
+      });
+
+      f.on('message', (msg, seqno) => {
+        const prefix = '(#' + seqno + ') ';
+        let emailData = {};
+
+        msg.on('body', (stream, info) => {
+          let buffer = '';
+          stream.on('data', (chunk) => {
+            buffer += chunk.toString('utf8');
           });
-          msg.once('attributes', function (attrs) {
-            console.log(prefix + 'Attributes: %s', inspect(attrs, false, 8));
-          });
-          msg.once('end', function () {
-            console.log(prefix + 'Finished');
+
+          stream.once('end', () => {
+            const header = Imap.parseHeader(buffer);
+
+            const messageId = header['message-id']
+              ? header['message-id'][0]
+              : `no-id-${seqno}`;
+
+            emailData = {
+              userId,
+              messageId,
+              from: header.from,
+              to: header.to,
+              subject: header.subject,
+              date: header.date,
+              flags: header.flags,
+              body: '',
+            };
+
+            this.indexEmailData(userId, emailData);
           });
         });
-        f.once('error', function (err) {
-          console.log('Fetch error: ' + err);
+
+        msg.once('attributes', (attrs) => {
+          console.log(prefix + 'Attributes: %s', inspect(attrs, false, 8));
         });
-        f.once('end', function () {
-          console.log('Done fetching all messages!');
-          imap.end();
+
+        msg.once('end', () => {
+          console.log(prefix + 'Finished');
         });
       });
-    });
 
-    imap.once('error', function (err) {
-      console.log(err);
-    });
+      f.once('error', (err) => {
+        console.log('Fetch error: ' + err);
+      });
 
-    imap.once('end', function () {
-      console.log('Connection ended');
+      f.once('end', () => {
+        console.log('Done fetching all messages!');
+        this.imap.end();
+      });
     });
-
-    imap.connect();
   }
+
+  async syncMailbox(userId: string, email: string) {
+    await this.searchService.indexMailboxData(userId, email);
+  }
+
+  async indexEmailData(userId: string, emailData: any) {
+    const { messageId, from, to, subject, date, flags, body } = emailData;
+
+    const document = {
+      userId,
+      messageId,
+      from,
+      to,
+      subject,
+      date,
+      flags,
+      body,
+    };
+
+    await this.searchService.indexEmailData(userId, document);
+  }
+
+  // subscribeToRealTimeUpdates() {
+  //   this.imap.once('ready', () => {
+  //     // Open inbox to listen for changes
+  //     this.imap.openBox('INBOX', true, (err, box) => {
+  //       if (err) throw err;
+
+  //       this.imap.idle();
+
+  //       this.imap.on('mail', async (numNewMsgs) => {
+  //         console.log(numNewMsgs + ' new messages');
+  //         await this.syncEmails('userId');
+  //       });
+
+  //       this.imap.on('expunge', (seqnos) => {
+  //         console.log('Expunged message(s):', seqnos);
+  //       });
+  //     });
+  //   });
+  // }
 }
