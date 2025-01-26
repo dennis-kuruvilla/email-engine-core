@@ -57,8 +57,15 @@ export class MicrosoftAuthController {
   @Post('sync-emails')
   @UseGuards(JwtAuthGuard)
   async syncEmails(@Req() req) {
-    const token = await this.userService.getToken(req.user.userId, 'microsoft');
-    this.syncEmailService.initiateSync(req.user.userId, token);
+    const userEmail = await this.userService.getUserEmail(
+      req.user.userId,
+      'microsoft',
+    );
+    this.syncEmailService.initiateSync(
+      req.user.userId,
+      userEmail.email,
+      userEmail.accessToken,
+    );
   }
 
   @Get('emails')

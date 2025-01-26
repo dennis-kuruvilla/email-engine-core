@@ -59,7 +59,7 @@ export class UserService {
     );
   }
 
-  async getToken(userId: string, provider: string) {
+  async getUserEmail(userId: string, provider: string) {
     const userEmail = await this.userEmailsRepository.findOne({
       where: { user: { id: userId }, provider },
     });
@@ -68,6 +68,6 @@ export class UserService {
       throw new NotFoundException('Token not found');
     }
 
-    return userEmail.accessToken;
+    return userEmail;
   }
 }

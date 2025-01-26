@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { inspect } from 'util';
-import { SearchService } from 'src/search/search.service';
+import { EmailData, SearchService } from 'src/search/search.service';
 // eslint-disable-next-line prettier/prettier
 const Imap = require('node-imap');
 
@@ -10,9 +10,7 @@ export class SyncEmailService {
 
   constructor(private readonly searchService: SearchService) {}
 
-  async initiateSync(userId: string, oauthToken: string) {
-    const mailId = 'denniskuruvilla@outlook.com';
-
+  async initiateSync(userId: string, mailId: string, oauthToken: string) {
     const auth2 = Buffer.from(
       [`user=${mailId}`, `auth=Bearer ${oauthToken}`, '', ''].join('\x01'),
       'utf-8',
@@ -23,7 +21,7 @@ export class SyncEmailService {
       host: 'outlook.office365.com',
       port: 993,
       tls: true,
-      debug: console.log,
+      // debug: console.log,
       authTimeout: 25000,
       connTimeout: 30000,
       tlsOptions: {
@@ -33,7 +31,7 @@ export class SyncEmailService {
     });
 
     this.imap.once('ready', async () => {
-      await this.syncEmails(userId);
+      await this.syncEmails(userId, mailId);
       await this.syncMailbox(userId, mailId);
       // this.subscribeToRealTimeUpdates();
     });
@@ -49,18 +47,27 @@ export class SyncEmailService {
     this.imap.connect();
   }
 
-  async syncEmails(userId: string) {
+  async syncEmails(userId: string, mailId: string) {
     this.imap.openBox('INBOX', true, (err, box) => {
       if (err) throw err;
 
       const f = this.imap.seq.fetch('1:' + box.messages.total, {
-        bodies: 'HEADER.FIELDS (FROM TO SUBJECT DATE FLAGS)',
+        bodies: ['HEADER.FIELDS (FROM TO SUBJECT DATE FLAGS)', 'TEXT'],
         struct: true,
       });
 
       f.on('message', (msg, seqno) => {
-        const prefix = '(#' + seqno + ') ';
-        let emailData = {};
+        let emailData: EmailData = {
+          userId: '',
+          messageId: '',
+          from: '',
+          to: '',
+          subject: '',
+          date: '',
+          read: false,
+          flagged: false,
+          body: '',
+        };
 
         msg.on('body', (stream, info) => {
           let buffer = '';
@@ -69,33 +76,37 @@ export class SyncEmailService {
           });
 
           stream.once('end', () => {
-            const header = Imap.parseHeader(buffer);
+            if (info.which === 'HEADER.FIELDS (FROM TO SUBJECT DATE FLAGS)') {
+              const header = Imap.parseHeader(buffer);
 
-            const messageId = header['message-id']
-              ? header['message-id'][0]
-              : `no-id-${seqno}`;
-
-            emailData = {
-              userId,
-              messageId,
-              from: header.from,
-              to: header.to,
-              subject: header.subject,
-              date: header.date,
-              flags: header.flags,
-              body: '',
-            };
-
-            this.indexEmailData(userId, emailData);
+              emailData = {
+                userId,
+                messageId: `${mailId}-${seqno}`,
+                from: header.from?.[0] || '',
+                to: header.to?.[0] || '',
+                subject: header.subject?.[0] || '',
+                date: header.date?.[0] || '',
+                read: false,
+                flagged: false,
+                body: '',
+              };
+            } else if (info.which === 'TEXT') {
+              emailData.body = ''; //Skip body for now
+            }
           });
         });
 
         msg.once('attributes', (attrs) => {
-          console.log(prefix + 'Attributes: %s', inspect(attrs, false, 8));
+          emailData.read = attrs.flags?.includes('\\Seen') || false;
+          emailData.flagged = attrs.flags?.includes('\\Flagged') || false;
         });
 
         msg.once('end', () => {
-          console.log(prefix + 'Finished');
+          console.log(
+            '(Message #%s) Finished processing',
+            `${mailId}-${seqno}`,
+          );
+          this.indexEmailData(userId, emailData);
         });
       });
 
@@ -115,7 +126,8 @@ export class SyncEmailService {
   }
 
   async indexEmailData(userId: string, emailData: any) {
-    const { messageId, from, to, subject, date, flags, body } = emailData;
+    const { messageId, from, to, subject, date, read, flagged, body } =
+      emailData;
 
     const document = {
       userId,
@@ -124,7 +136,8 @@ export class SyncEmailService {
       to,
       subject,
       date,
-      flags,
+      read,
+      flagged,
       body,
     };
 

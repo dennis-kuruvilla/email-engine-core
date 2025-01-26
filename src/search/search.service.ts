@@ -2,6 +2,17 @@ import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ElasticsearchService } from '@nestjs/elasticsearch';
 import { SearchResponse } from '@elastic/elasticsearch/lib/api/types';
 
+export interface EmailData {
+  userId: string;
+  messageId: string;
+  from: string;
+  to: string;
+  subject: string;
+  date: string;
+  read: boolean;
+  flagged: boolean;
+  body: string;
+}
 @Injectable()
 export class SearchService implements OnModuleInit {
   constructor(private readonly elasticsearchService: ElasticsearchService) {}
@@ -26,7 +37,8 @@ export class SearchService implements OnModuleInit {
                 to: { type: 'text' },
                 subject: { type: 'text' },
                 date: { type: 'date' },
-                flags: { type: 'text' },
+                read: { type: 'boolean' },
+                flagged: { type: 'boolean' },
                 body: { type: 'text' },
               },
             },
@@ -89,7 +101,7 @@ export class SearchService implements OnModuleInit {
   }
 
   async indexEmailData(userId: string, email: any) {
-    const { messageId, from, to, subject, date, flags, body } = email;
+    const { messageId, from, to, subject, date, read, flagged, body } = email;
 
     const formattedDate = new Date(date).toISOString();
 
@@ -100,9 +112,12 @@ export class SearchService implements OnModuleInit {
       to,
       subject,
       date: formattedDate,
-      flags,
+      read,
+      flagged,
       body,
     };
+
+    // console.log('document:', document);
 
     await this.elasticsearchService.index({
       index: 'emails',
