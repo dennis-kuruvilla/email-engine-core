@@ -1,6 +1,7 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ElasticsearchService } from '@nestjs/elasticsearch';
 import { SearchResponse } from '@elastic/elasticsearch/lib/api/types';
+import * as moment from 'moment';
 
 export interface EmailData {
   userId: string;
@@ -139,5 +140,24 @@ export class SearchService implements OnModuleInit {
       id: userId,
       body: document,
     });
+  }
+
+  async batchIndexEmails(userId: string, emails: EmailData[]) {
+    const body = emails.flatMap((email) => [
+      { index: { _index: 'emails', _id: email.messageId } },
+      {
+        ...email,
+        date: moment(email.date, 'ddd, DD MMM YYYY HH:mm:ss Z').toISOString(),
+      },
+    ]);
+
+    try {
+      const response = await this.elasticsearchService.bulk({ body });
+      if (response.errors) {
+        console.error('Bulk indexing errors:', response.items);
+      }
+    } catch (error) {
+      console.error('Error during bulk indexing:', error);
+    }
   }
 }

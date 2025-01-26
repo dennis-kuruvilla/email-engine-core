@@ -6,6 +6,7 @@ import { UserModule } from './user/user.module';
 import { MicrosoftAuthModule } from './microsoft-auth/microsoft-auth.module';
 import { SearchModule } from './search/search.module';
 import { SyncEmailModule } from './sync-email/sync-email.module';
+import { BullModule } from '@nestjs/bull';
 
 @Module({
   imports: [
@@ -15,6 +16,12 @@ import { SyncEmailModule } from './sync-email/sync-email.module';
     MicrosoftAuthModule,
     SearchModule,
     SyncEmailModule,
+    BullModule.forRoot({
+      redis: {
+        host: 'localhost',
+        port: 6379,
+      },
+    }),
   ],
 })
 export class AppModule {}

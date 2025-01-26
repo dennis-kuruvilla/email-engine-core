@@ -14,6 +14,7 @@ services:
     depends_on:
       - postgres-email-engine-core
       - elasticsearch
+      - redis
     environment:
       - npm_config_cache=/home/node/.npm
 
@@ -46,6 +47,11 @@ services:
     memswap_limit: 2g
     volumes:
       - elasticsearch-data:/usr/share/elasticsearch/data
+
+  redis:
+    image: redis:7
+    ports:
+      - 6379:6379
 
 volumes:
   postgres-data:

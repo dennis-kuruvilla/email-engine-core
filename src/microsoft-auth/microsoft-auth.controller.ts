@@ -61,7 +61,7 @@ export class MicrosoftAuthController {
       req.user.userId,
       'microsoft',
     );
-    this.syncEmailService.initiateSync(
+    this.syncEmailService.queueSyncJob(
       req.user.userId,
       userEmail.email,
       userEmail.accessToken,
