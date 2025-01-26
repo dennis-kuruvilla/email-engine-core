@@ -12,6 +12,18 @@ import {
 } from 'typeorm';
 import { IsString, IsEmail, MaxLength } from 'class-validator';
 
+export enum InitialSyncStatus {
+  PENDING = 'PENDING',
+  INITIATED = 'INITIATED',
+  COMPLETED = 'COMPLETED',
+  FAILED = 'FAILED',
+}
+
+export enum RealTimeSyncStatus {
+  ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE',
+}
+
 @Entity('users')
 export class User {
   @PrimaryGeneratedColumn('uuid')
@@ -66,6 +78,22 @@ export class UserEmail {
 
   @Column({ type: 'text', nullable: true })
   provider: string;
+
+  @Column({
+    type: 'enum',
+    enum: InitialSyncStatus,
+    name: 'initial_sync_status',
+    default: InitialSyncStatus.PENDING,
+  })
+  initialSyncStatus: InitialSyncStatus;
+
+  @Column({
+    type: 'enum',
+    enum: RealTimeSyncStatus,
+    name: 'realtime_sync_status',
+    default: RealTimeSyncStatus.INACTIVE,
+  })
+  realtimeSyncStatus: RealTimeSyncStatus;
 
   @CreateDateColumn()
   createdAt: Date;

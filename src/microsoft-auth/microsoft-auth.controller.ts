@@ -12,6 +12,7 @@ import { MicrosoftAuthService } from './microsoft-auth.service';
 import { UserService } from 'src/user/user.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { SyncEmailService } from 'src/sync-email/sync-email.service';
+import { InitialSyncStatus } from 'src/user/user.entity';
 
 @Controller('ms-auth')
 export class MicrosoftAuthController {
@@ -61,6 +62,11 @@ export class MicrosoftAuthController {
       req.user.userId,
       'microsoft',
     );
+
+    if (userEmail.initialSyncStatus === InitialSyncStatus.INITIATED) {
+      throw new BadRequestException('Initial sync is already in progress');
+    }
+
     this.syncEmailService.queueSyncJob(
       req.user.userId,
       userEmail.email,

@@ -1,7 +1,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { User, UserEmail } from './user.entity';
+import {
+  InitialSyncStatus,
+  RealTimeSyncStatus,
+  User,
+  UserEmail,
+} from './user.entity';
 
 @Injectable()
 export class UserService {
@@ -69,5 +74,33 @@ export class UserService {
     }
 
     return userEmail;
+  }
+
+  async updateInitialSyncStatus(
+    userId: string,
+    email: string,
+    status: InitialSyncStatus,
+  ): Promise<UserEmail> {
+    const userEmail = await this.userEmailsRepository.findOneOrFail({
+      where: { user: { id: userId }, email },
+    });
+
+    userEmail.initialSyncStatus = status;
+
+    return this.userEmailsRepository.save(userEmail);
+  }
+
+  async updateRealTimeSyncStatus(
+    userId: string,
+    email: string,
+    status: RealTimeSyncStatus,
+  ): Promise<UserEmail> {
+    const userEmail = await this.userEmailsRepository.findOneOrFail({
+      where: { user: { id: userId }, email },
+    });
+
+    userEmail.realtimeSyncStatus = status;
+
+    return this.userEmailsRepository.save(userEmail);
   }
 }
