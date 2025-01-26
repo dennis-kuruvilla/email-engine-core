@@ -160,4 +160,51 @@ export class SearchService implements OnModuleInit {
       console.error('Error during bulk indexing:', error);
     }
   }
+
+  async updateEmailReadStatus(
+    messageId: string,
+    isRead: boolean,
+  ): Promise<void> {
+    try {
+      const result = await this.elasticsearchService.update({
+        index: 'emails',
+        id: messageId,
+        body: {
+          doc: {
+            read: isRead,
+          },
+        },
+      });
+
+      if (result.result !== 'updated') {
+        throw new Error('Failed to update read status in Elasticsearch');
+      }
+
+      console.log(
+        `Successfully updated read status for messageId=${messageId} to ${isRead}`,
+      );
+    } catch (error) {
+      console.error(
+        `Error updating read status for messageId=${messageId}:`,
+        error,
+      );
+    }
+  }
+
+  async deleteEmail(messageId: string): Promise<void> {
+    try {
+      const result = await this.elasticsearchService.delete({
+        index: 'emails',
+        id: messageId,
+      });
+
+      if (result.result !== 'deleted') {
+        throw new Error('Failed to delete email from Elasticsearch');
+      }
+
+      console.log(`Successfully deleted email with messageId=${messageId}`);
+    } catch (error) {
+      console.error(`Error deleting email with messageId=${messageId}:`, error);
+    }
+  }
 }

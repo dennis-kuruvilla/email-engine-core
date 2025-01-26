@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import {
@@ -9,12 +9,20 @@ import {
 } from './user.entity';
 
 @Injectable()
-export class UserService {
+export class UserService implements OnModuleInit {
   constructor(
     @InjectRepository(User) private userRepository: Repository<User>,
     @InjectRepository(UserEmail)
     private userEmailsRepository: Repository<UserEmail>,
   ) {}
+
+  async onModuleInit() {
+    console.log('Resetting realtimeSyncStatus for all user emails to INACTIVE');
+    await this.userEmailsRepository.update(
+      {},
+      { realtimeSyncStatus: RealTimeSyncStatus.INACTIVE },
+    );
+  }
 
   async getAllUsers(search?: string): Promise<User[]> {
     const query = this.userRepository

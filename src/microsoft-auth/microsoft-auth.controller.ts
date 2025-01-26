@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  Body,
   Controller,
   Get,
   Post,
@@ -12,7 +13,7 @@ import { MicrosoftAuthService } from './microsoft-auth.service';
 import { UserService } from 'src/user/user.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { SyncEmailService } from 'src/sync-email/sync-email.service';
-import { InitialSyncStatus } from 'src/user/user.entity';
+import { InitialSyncStatus, RealTimeSyncStatus } from 'src/user/user.entity';
 
 @Controller('ms-auth')
 export class MicrosoftAuthController {
@@ -57,7 +58,7 @@ export class MicrosoftAuthController {
 
   @Post('sync-emails')
   @UseGuards(JwtAuthGuard)
-  async syncEmails(@Req() req) {
+  async syncEmails(@Req() req, @Body('force') force: boolean = false) {
     const userEmail = await this.userService.getUserEmail(
       req.user.userId,
       'microsoft',
@@ -67,11 +68,25 @@ export class MicrosoftAuthController {
       throw new BadRequestException('Initial sync is already in progress');
     }
 
-    this.syncEmailService.queueSyncJob(
-      req.user.userId,
-      userEmail.email,
-      userEmail.accessToken,
-    );
+    if (userEmail.initialSyncStatus === InitialSyncStatus.PENDING || force) {
+      this.syncEmailService.queueSyncJob(
+        req.user.userId,
+        userEmail.email,
+        userEmail.accessToken,
+      );
+    } else {
+      console.log('skiping initial sync');
+    }
+
+    if (userEmail.realtimeSyncStatus === RealTimeSyncStatus.INACTIVE) {
+      this.syncEmailService.queueRealtimeSyncJob(
+        req.user.userId,
+        userEmail.email,
+        userEmail.accessToken,
+      );
+    } else {
+      console.log('skiping realtime sync');
+    }
   }
 
   @Get('emails')
