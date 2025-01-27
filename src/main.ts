@@ -9,6 +9,11 @@ async function bootstrap() {
     app.setGlobalPrefix(process.env.BASE_PATH);
   }
 
+  app.enableCors({
+    origin: 'http://localhost:5173',
+    credentials: true,
+  });
+
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,

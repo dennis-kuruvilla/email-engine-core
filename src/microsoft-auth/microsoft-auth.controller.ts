@@ -34,14 +34,16 @@ export class MicrosoftAuthController {
   }
 
   @Get('redirect')
-  async redirect(@Query('code') code: string, @Query('state') state: string) {
+  async redirect(
+    @Query('code') code: string,
+    @Query('state') state: string,
+    @Res() res,
+  ) {
     const userId = this.microsoftAuthService.decodeState(state);
 
     const token = await this.microsoftAuthService.getTokenFromCode(code);
-    // const emailResponse = await this.microsoftAuthService.getEmailFromGraph(
-    //   token.accessToken,
-    // );
     const emailResponse = token.account.username;
+
     await this.userService.upsertUserEmail({
       userId,
       email: emailResponse,
@@ -51,9 +53,7 @@ export class MicrosoftAuthController {
       provider: 'microsoft',
     });
 
-    return {
-      message: 'Tokens saved successfully',
-    };
+    return res.redirect(`http://localhost:5173/email-data?status=linked`);
   }
 
   @Post('sync-emails')

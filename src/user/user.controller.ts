@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards, Query } from '@nestjs/common';
+import { Controller, Get, UseGuards, Query, Req } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -25,5 +25,12 @@ export class UserController {
   @Get()
   async getAllUsers(@Query('search') search?: string): Promise<User[]> {
     return this.userService.getAllUsers(search);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('me')
+  async getLoggedInUser(@Req() req): Promise<User> {
+    const userId = req.user.userId;
+    return await this.userService.getUserById(userId);
   }
 }

@@ -207,4 +207,34 @@ export class SearchService implements OnModuleInit {
       console.error(`Error deleting email with messageId=${messageId}:`, error);
     }
   }
+  async searchEmails(userId: string, page: number, limit: number) {
+    const from = (page - 1) * limit; // Calculate offset for pagination
+
+    try {
+      const response = await this.elasticsearchService.search({
+        index: 'emails',
+        body: {
+          query: {
+            match: {
+              userId: userId,
+            },
+          },
+          sort: [{ date: { order: 'desc' } }],
+          from,
+          size: limit,
+        },
+      });
+
+      const hits = response.hits.hits.map((hit) => hit._source);
+      return {
+        total: response.hits.total,
+        page,
+        limit,
+        data: hits,
+      };
+    } catch (error) {
+      console.error('Error fetching paginated emails:', error);
+      throw new Error('Failed to fetch emails');
+    }
+  }
 }

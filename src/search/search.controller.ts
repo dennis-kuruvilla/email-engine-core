@@ -1,21 +1,22 @@
-import { Controller, Get, Query, Param, Post, Body } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards, Req } from '@nestjs/common';
 import { SearchService } from './search.service';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 
 @Controller('search')
 export class SearchController {
   constructor(private readonly searchService: SearchService) {}
 
-  @Get(':index')
-  async search(@Param('index') index: string, @Query('query') query: string) {
-    const queryObj = JSON.parse(query);
-    return this.searchService.search(index, queryObj);
-  }
-
-  @Post(':index')
-  async indexDocument(
-    @Param('index') index: string,
-    @Body() body: { id: string; document: any },
+  @UseGuards(JwtAuthGuard)
+  @Get('emails')
+  async getEmails(
+    @Req() req,
+    @Query('page') page: string,
+    @Query('limit') limit: string,
   ) {
-    return this.searchService.indexDocument(index, body.id, body.document);
+    const userId = req.user.userId;
+    const pageNum = parseInt(page, 10) || 1;
+    const pageSize = parseInt(limit, 10) || 10;
+
+    return this.searchService.searchEmails(userId, pageNum, pageSize);
   }
 }
