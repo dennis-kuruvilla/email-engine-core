@@ -114,6 +114,13 @@ export class UserService implements OnModuleInit {
 
     await this.sendUserMailUpdateEvent(userEmail);
 
+    if (status === InitialSyncStatus.COMPLETED) {
+      await this.sendUserEvent(userId, {
+        type: 'MAIL_UPDATE',
+        id: 'xyz',
+      });
+    }
+
     return this.userEmailsRepository.save(userEmail);
   }
 
