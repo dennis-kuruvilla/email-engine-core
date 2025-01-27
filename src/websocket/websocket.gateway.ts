@@ -53,7 +53,10 @@ export class WebSocketGatewayService
     if (clientId) {
       const client = this.server.sockets.sockets.get(clientId);
       if (client) {
-        client.emit('user-event', payload);
+        setTimeout(() => {
+          client.emit('user-event', payload);
+          console.log(`Event sent to user ${userId}`);
+        }, 2000);
       } else {
         console.log(`Client with ID ${clientId} not found`);
       }
