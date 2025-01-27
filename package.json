@@ -30,8 +30,11 @@
     "@nestjs/jwt": "^11.0.0",
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^10.0.0",
+    "@nestjs/platform-socket.io": "^11.0.6",
+    "@nestjs/platform-ws": "^11.0.6",
     "@nestjs/swagger": "^11.0.3",
     "@nestjs/typeorm": "^11.0.0",
+    "@nestjs/websockets": "^11.0.6",
     "axios": "^1.7.9",
     "bull": "^4.16.5",
     "class-transformer": "^0.5.1",
@@ -48,6 +51,7 @@
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.1",
     "simple-oauth2": "^5.1.0",
+    "socket.io": "^4.8.1",
     "typeorm": "^0.3.20"
   },
   "devDependencies": {

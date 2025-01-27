@@ -7,6 +7,7 @@ import { MicrosoftAuthModule } from './microsoft-auth/microsoft-auth.module';
 import { SearchModule } from './search/search.module';
 import { SyncEmailModule } from './sync-email/sync-email.module';
 import { BullModule } from '@nestjs/bull';
+import { WebsocketModule } from './websocket/websocket.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { BullModule } from '@nestjs/bull';
         port: 6379,
       },
     }),
+    WebsocketModule,
   ],
 })
 export class AppModule {}
