@@ -1,4 +1,13 @@
-import { Controller, Get, UseGuards, Query, Req } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  UseGuards,
+  Query,
+  Req,
+  Post,
+  Param,
+  Body,
+} from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -29,8 +38,14 @@ export class UserController {
 
   @UseGuards(JwtAuthGuard)
   @Get('me')
-  async getLoggedInUser(@Req() req): Promise<User> {
+  async getLoggedInUser(@Req() req) {
     const userId = req.user.userId;
     return await this.userService.getUserById(userId);
+  }
+
+  //just to test websocket connection
+  @Post(':userId/sendEvent')
+  async sendEvent(@Param('userId') userId: string, @Body() body) {
+    await this.userService.sendUserEvent(userId, body);
   }
 }

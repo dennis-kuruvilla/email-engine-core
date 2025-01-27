@@ -291,7 +291,7 @@ export class EmailSyncProcessor {
 
             f.once('end', async () => {
               console.log('Fetched real-time emails');
-              await this.searchService.batchIndexEmails(userId, emails);
+              await this.searchService.batchIndexEmails(userId, emails, true);
             });
           });
 
@@ -316,12 +316,14 @@ export class EmailSyncProcessor {
                 if (isRead) {
                   console.log(`Marking email as read: seqno=${seqno}`);
                   await this.searchService.updateEmailReadStatus(
+                    userId,
                     `${mailId}-${seqno}`,
                     true,
                   );
                 } else {
                   console.log(`Marking email as unread: seqno=${seqno}`);
                   await this.searchService.updateEmailReadStatus(
+                    userId,
                     `${mailId}-${seqno}`,
                     false,
                   );
@@ -338,7 +340,7 @@ export class EmailSyncProcessor {
             console.log(`Email deleted: seqno=${seqno}`);
 
             console.log(`Deleting email from search index: seqno=${seqno}`);
-            await this.searchService.deleteEmail(`${mailId}-${seqno}`);
+            await this.searchService.deleteEmail(userId, `${mailId}-${seqno}`);
           });
 
           imap.on('close', async (hadError) => {

@@ -2,6 +2,7 @@ import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ElasticsearchService } from '@nestjs/elasticsearch';
 import { SearchResponse } from '@elastic/elasticsearch/lib/api/types';
 import * as moment from 'moment';
+import { WebSocketGatewayService } from 'src/websocket/websocket.gateway';
 
 export interface EmailData {
   userId: string;
@@ -16,7 +17,10 @@ export interface EmailData {
 }
 @Injectable()
 export class SearchService implements OnModuleInit {
-  constructor(private readonly elasticsearchService: ElasticsearchService) {}
+  constructor(
+    private readonly elasticsearchService: ElasticsearchService,
+    private webSocketService: WebSocketGatewayService,
+  ) {}
 
   async onModuleInit() {
     try {
@@ -142,7 +146,11 @@ export class SearchService implements OnModuleInit {
     });
   }
 
-  async batchIndexEmails(userId: string, emails: EmailData[]) {
+  async batchIndexEmails(
+    userId: string,
+    emails: EmailData[],
+    emitEvent = false,
+  ) {
     const body = emails.flatMap((email) => [
       { index: { _index: 'emails', _id: email.messageId } },
       {
@@ -156,12 +164,18 @@ export class SearchService implements OnModuleInit {
       if (response.errors) {
         console.error('Bulk indexing errors:', response.items);
       }
+      if (emitEvent) {
+        emails.forEach((email) => {
+          this.sendMailUpdateEvent(email.userId, email.messageId);
+        });
+      }
     } catch (error) {
       console.error('Error during bulk indexing:', error);
     }
   }
 
   async updateEmailReadStatus(
+    userId: string,
     messageId: string,
     isRead: boolean,
   ): Promise<void> {
@@ -183,6 +197,8 @@ export class SearchService implements OnModuleInit {
       console.log(
         `Successfully updated read status for messageId=${messageId} to ${isRead}`,
       );
+
+      this.sendMailUpdateEvent(userId, messageId);
     } catch (error) {
       console.error(
         `Error updating read status for messageId=${messageId}:`,
@@ -191,7 +207,7 @@ export class SearchService implements OnModuleInit {
     }
   }
 
-  async deleteEmail(messageId: string): Promise<void> {
+  async deleteEmail(userId: string, messageId: string): Promise<void> {
     try {
       const result = await this.elasticsearchService.delete({
         index: 'emails',
@@ -202,13 +218,16 @@ export class SearchService implements OnModuleInit {
         throw new Error('Failed to delete email from Elasticsearch');
       }
 
+      this.sendMailUpdateEvent(userId, messageId);
+
       console.log(`Successfully deleted email with messageId=${messageId}`);
     } catch (error) {
       console.error(`Error deleting email with messageId=${messageId}:`, error);
     }
   }
+
   async searchEmails(userId: string, page: number, limit: number) {
-    const from = (page - 1) * limit; // Calculate offset for pagination
+    const from = (page - 1) * limit;
 
     try {
       const response = await this.elasticsearchService.search({
@@ -236,5 +255,13 @@ export class SearchService implements OnModuleInit {
       console.error('Error fetching paginated emails:', error);
       throw new Error('Failed to fetch emails');
     }
+  }
+
+  sendMailUpdateEvent(userId: string, messageId: string) {
+    const payload = {
+      type: 'MAIL_UPDATE',
+      id: messageId,
+    };
+    this.webSocketService.sendEventToUser(userId, payload);
   }
 }

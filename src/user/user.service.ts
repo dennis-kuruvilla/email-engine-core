@@ -7,6 +7,7 @@ import {
   User,
   UserEmail,
 } from './user.entity';
+import { WebSocketGatewayService } from 'src/websocket/websocket.gateway';
 
 @Injectable()
 export class UserService implements OnModuleInit {
@@ -14,6 +15,7 @@ export class UserService implements OnModuleInit {
     @InjectRepository(User) private userRepository: Repository<User>,
     @InjectRepository(UserEmail)
     private userEmailsRepository: Repository<UserEmail>,
+    private webSocketService: WebSocketGatewayService,
   ) {}
 
   async onModuleInit() {
@@ -38,15 +40,29 @@ export class UserService implements OnModuleInit {
     return query.getMany();
   }
 
-  async getUserById(userId: string): Promise<User> {
+  async getUserById(userId: string) {
     const user = await this.userRepository.findOne({
       where: { id: userId },
       relations: ['emails'],
     });
+
     if (!user) {
       throw new NotFoundException('User not found');
     }
-    return user;
+
+    const userEmails = user.emails.map((email) => ({
+      id: email.id,
+      email: email.email,
+      provider: email.provider,
+      realtimeSyncStatus: email.realtimeSyncStatus,
+      initialSyncStatus: email.initialSyncStatus,
+    }));
+
+    return {
+      id: user.id,
+      username: user.username,
+      emails: userEmails,
+    };
   }
 
   async upsertUserEmail(data: {
@@ -91,9 +107,12 @@ export class UserService implements OnModuleInit {
   ): Promise<UserEmail> {
     const userEmail = await this.userEmailsRepository.findOneOrFail({
       where: { user: { id: userId }, email },
+      relations: ['user'],
     });
 
     userEmail.initialSyncStatus = status;
+
+    await this.sendUserMailUpdateEvent(userEmail);
 
     return this.userEmailsRepository.save(userEmail);
   }
@@ -105,10 +124,25 @@ export class UserService implements OnModuleInit {
   ): Promise<UserEmail> {
     const userEmail = await this.userEmailsRepository.findOneOrFail({
       where: { user: { id: userId }, email },
+      relations: ['user'],
     });
 
     userEmail.realtimeSyncStatus = status;
 
+    await this.sendUserMailUpdateEvent(userEmail);
+
     return this.userEmailsRepository.save(userEmail);
+  }
+
+  async sendUserEvent(userId: string, payload: any) {
+    this.webSocketService.sendEventToUser(userId, payload);
+  }
+
+  async sendUserMailUpdateEvent(userEmail: UserEmail) {
+    const payload = {
+      type: 'MAILBOX_UPDATE',
+      id: userEmail.id,
+    };
+    this.webSocketService.sendEventToUser(userEmail.user.id, payload);
   }
 }
