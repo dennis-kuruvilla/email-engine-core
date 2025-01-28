@@ -179,7 +179,7 @@ export class EmailSyncProcessor {
 
   @Process('realtime-sync-emails')
   async handleRealTimeEmailSync(job: Job) {
-    const { userId, mailId, oauthToken } = job.data;
+    const { userId, mailId, oauthToken, provider } = job.data;
 
     try {
       await this.userService.updateRealTimeSyncStatus(
@@ -195,14 +195,14 @@ export class EmailSyncProcessor {
 
       const imap = new Imap({
         xoauth2: auth2,
-        host: 'outlook.office365.com',
-        port: 993,
+        host: EMAIL_PROVIDER_CONFIG[provider].host,
+        port: EMAIL_PROVIDER_CONFIG[provider].port,
         tls: true,
         authTimeout: 25000,
         connTimeout: 30000,
         tlsOptions: {
           rejectUnauthorized: false,
-          servername: 'outlook.office365.com',
+          servername: EMAIL_PROVIDER_CONFIG[provider].host,
         },
         keepalive: {
           interval: 10000,
