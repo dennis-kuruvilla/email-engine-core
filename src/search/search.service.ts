@@ -23,55 +23,78 @@ export class SearchService implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
-    try {
-      const health = await this.elasticsearchService.ping();
-      console.log('elasticsearch connection is healthy:', health);
+    const retryDelay = 3000;
+    const maxRetries = 10;
+    let attempt = 0;
+    let connected = false;
 
-      const emailIndexExists = await this.elasticsearchService.indices.exists({
-        index: 'emails',
-      });
-      if (!emailIndexExists) {
-        await this.elasticsearchService.indices.create({
-          index: 'emails',
-          body: {
-            mappings: {
-              properties: {
-                userId: { type: 'keyword' },
-                messageId: { type: 'keyword' },
-                from: { type: 'text' },
-                to: { type: 'text' },
-                subject: { type: 'text' },
-                date: { type: 'date' },
-                read: { type: 'boolean' },
-                flagged: { type: 'boolean' },
-                body: { type: 'text' },
+    while (attempt < maxRetries && !connected) {
+      try {
+        const health = await this.elasticsearchService.ping();
+        console.log('elasticsearch connection is healthy:', health);
+        connected = true;
+
+        const emailIndexExists = await this.elasticsearchService.indices.exists(
+          {
+            index: 'emails',
+          },
+        );
+        if (!emailIndexExists) {
+          console.log('Creating emails index...');
+          await this.elasticsearchService.indices.create({
+            index: 'emails',
+            body: {
+              mappings: {
+                properties: {
+                  userId: { type: 'keyword' },
+                  messageId: { type: 'keyword' },
+                  from: { type: 'text' },
+                  to: { type: 'text' },
+                  subject: { type: 'text' },
+                  date: { type: 'date' },
+                  read: { type: 'boolean' },
+                  flagged: { type: 'boolean' },
+                  body: { type: 'text' },
+                },
               },
             },
-          },
-        });
-      }
+          });
+          console.log('Emails index created');
+        }
 
-      const mailboxIndexExists = await this.elasticsearchService.indices.exists(
-        { index: 'mailboxes' },
-      );
-      if (!mailboxIndexExists) {
-        await this.elasticsearchService.indices.create({
-          index: 'mailboxes',
-          body: {
-            mappings: {
-              properties: {
-                userId: { type: 'keyword' },
-                email: { type: 'keyword' },
-                lastSync: { type: 'date' },
-                syncStatus: { type: 'text' },
+        const mailboxIndexExists =
+          await this.elasticsearchService.indices.exists({
+            index: 'mailboxes',
+          });
+        if (!mailboxIndexExists) {
+          console.log('Creating mailboxes index...');
+          await this.elasticsearchService.indices.create({
+            index: 'mailboxes',
+            body: {
+              mappings: {
+                properties: {
+                  userId: { type: 'keyword' },
+                  email: { type: 'keyword' },
+                  lastSync: { type: 'date' },
+                  syncStatus: { type: 'text' },
+                },
               },
             },
-          },
-        });
+          });
+          console.log('Mailboxes index created');
+        }
+      } catch (error) {
+        console.error('Elasticsearch connection failed:', error);
+        attempt++;
+        if (attempt < maxRetries) {
+          console.log(
+            `Retrying in ${retryDelay}ms... (${attempt}/${maxRetries})`,
+          );
+          await new Promise((res) => setTimeout(res, retryDelay));
+        } else {
+          throw new Error('Elasticsearch connection failed after retries');
+        }
       }
-    } catch (error) {
-      console.error('elasticsearch connection failed:', error);
-      throw new Error('elasticsearch connection failed');
     }
   }
 

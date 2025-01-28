@@ -17,10 +17,15 @@ export class SyncEmailService implements OnModuleInit {
     }
   }
 
-  async queueSyncJob(userId: string, mailId: string, oauthToken: string) {
+  async queueSyncJob(
+    userId: string,
+    mailId: string,
+    oauthToken: string,
+    provider: string,
+  ) {
     await this.emailSyncQueue.add(
       'sync-emails',
-      { userId, mailId, oauthToken },
+      { userId, mailId, oauthToken, provider },
       { removeOnComplete: true },
     );
     console.log(
@@ -32,10 +37,11 @@ export class SyncEmailService implements OnModuleInit {
     userId: string,
     mailId: string,
     oauthToken: string,
+    provider: string,
   ) {
     await this.emailSyncQueue.add(
       'realtime-sync-emails',
-      { userId, mailId, oauthToken },
+      { userId, mailId, oauthToken, provider },
       { removeOnComplete: true },
     );
     console.log(

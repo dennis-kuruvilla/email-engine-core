@@ -73,6 +73,7 @@ export class MicrosoftAuthController {
         req.user.userId,
         userEmail.email,
         userEmail.accessToken,
+        userEmail.provider,
       );
     } else {
       console.log('skiping initial sync');
@@ -83,6 +84,7 @@ export class MicrosoftAuthController {
         req.user.userId,
         userEmail.email,
         userEmail.accessToken,
+        userEmail.provider,
       );
     } else {
       console.log('skiping realtime sync');

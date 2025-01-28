@@ -1,5 +1,6 @@
 import { Processor, Process } from '@nestjs/bull';
 import { Job } from 'bull';
+import { EMAIL_PROVIDER_CONFIG } from 'src/common/constants';
 import { SearchService, EmailData } from 'src/search/search.service';
 import { InitialSyncStatus, RealTimeSyncStatus } from 'src/user/user.entity';
 import { UserService } from 'src/user/user.service';
@@ -21,7 +22,7 @@ export class EmailSyncProcessor {
 
   @Process('sync-emails')
   async handleSyncEmails(job: Job) {
-    const { userId, mailId, oauthToken } = job.data;
+    const { userId, mailId, oauthToken, provider } = job.data;
 
     try {
       await this.userService.updateInitialSyncStatus(
@@ -37,14 +38,14 @@ export class EmailSyncProcessor {
 
       const imap = new Imap({
         xoauth2: auth2,
-        host: 'outlook.office365.com',
-        port: 993,
+        host: EMAIL_PROVIDER_CONFIG[provider].host,
+        port: EMAIL_PROVIDER_CONFIG[provider].port,
         tls: true,
         authTimeout: 25000,
         connTimeout: 30000,
         tlsOptions: {
           rejectUnauthorized: false,
-          servername: 'outlook.office365.com',
+          servername: EMAIL_PROVIDER_CONFIG[provider].host,
         },
       });
 

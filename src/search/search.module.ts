@@ -7,7 +7,7 @@ import { WebsocketModule } from 'src/websocket/websocket.module';
 @Module({
   imports: [
     ElasticsearchModule.register({
-      node: 'http://localhost:9200',
+      node: `http://${process.env.ELASTICSEARCH_HOST}:${process.env.ELASTICSEARCH_PORT}`,
     }),
     WebsocketModule,
   ],
