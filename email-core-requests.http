@@ -1,0 +1,62 @@
+
+### SIGN UP
+POST http://localhost:3000/api/auth/register
+content-type: application/json
+
+{
+  "username": "dennis",
+  "password": "password123"
+}
+
+### LOG IN
+POST http://localhost:3000/api/auth/login
+content-type: application/json
+
+{
+  "username": "dennis",
+  "password": "password123"
+   
+}
+
+### LOG OUT
+POST http://localhost:3000/api/auth/logout
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMjM1NmMzOS1hZjYxLTQ3YjUtYTU2OC1mZDNmMmYxYTM2ZDAiLCJpYXQiOjE3Mzc2NjMwNTMsImV4cCI6MTczNzY2NjY1M30._5SOvOC_iJCu9Jh2hU8vA1FomqpDcnlzw1NQ-5QDAdw
+
+###GET ALL USERS - for dev purposes
+GET http://localhost:3000/api/users
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3YjBmNDYwNi02ZDljLTQzZWQtOWVhNi1iYTE2MThmM2E3MTUiLCJpYXQiOjE3Mzc4MDk3MzgsImV4cCI6MTczNzgxMzMzOH0.CH14ozjCpNcxSkvDiEKliz8MTrgxngtYHGa3oRNlT-0
+
+
+### LINK OUTLOOK - RUN IN BROWSER
+GET http://localhost:3000/api/ms-auth/login?userId=8091ae53-eded-48fb-9f8a-cbbebb6ead6e
+
+
+### SYNC EMAILS
+POST http://localhost:3000/api/ms-auth/sync-emails
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4MDkxYWU1My1lZGVkLTQ4ZmItOWY4YS1jYmJlYmI2ZWFkNmUiLCJpYXQiOjE3MzgwMjIyNTgsImV4cCI6MTczODAyNTg1OH0.dp3zMt2IPXsiGbK2xym9fG3wQ2CFe4rgjStfwDQo-hU
+content-type: application/json
+
+{
+  "force": true //it will force sync the emails, for dev purposes
+}
+
+
+### GET LOGGED IN USER
+GET http://localhost:3000/api/users/me
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2Mzg4MTEyOS1mZjAxLTRmMGQtODJmNS0zMDUwOGQxMWRhZjUiLCJpYXQiOjE3MzgwMDk2OTcsImV4cCI6MTczODAxMzI5N30.1mqJiAJQjOi7P4QMxQtxa6zLQHVb429kMkrrzY3akVI
+
+### GET EMAILS
+GET http://localhost:3000/api/search/emails?page=1&limit=16
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4MDkxYWU1My1lZGVkLTQ4ZmItOWY4YS1jYmJlYmI2ZWFkNmUiLCJpYXQiOjE3MzgwMjIyNTgsImV4cCI6MTczODAyNTg1OH0.dp3zMt2IPXsiGbK2xym9fG3wQ2CFe4rgjStfwDQo-hU
+
+### SEND EVENT TO CLIENT
+POST http://localhost:3000/api/users/63881129-ff01-4f0d-82f5-30508d11daf5/sendEvent
+content-type: application/json
+
+{
+  "type": "test-event", 
+  "payload": {  
+    "title": "Sample title",
+    "description": "testing out the send event endpoint",
+  }
+}
