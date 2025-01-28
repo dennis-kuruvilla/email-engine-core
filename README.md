@@ -1,6 +1,7 @@
 # Email Engine Core
 
 This is a backend service developed using NestJS.
+Walkthrough Video: https://www.youtube.com/watch?v=zJ0_yFZK3wo
 
 ## Functionalities
 
@@ -41,3 +42,4 @@ docker-compose up
 ```
 
 4. Refer to the email-core-requests.http file to see the sample HTTP requests you can make. You can install the HTTP client in VS Code to run those in the editor itself.
+
